@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teacher Resources Hub</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#172033}
+header{background:linear-gradient(135deg,#0b3b7a,#1565c0);color:#fff;padding:18px}
+nav{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center}.logo{font-weight:800;font-size:21px}
+.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer}.light{background:#fff;color:#0b3b7a}.blue{background:#1565c0;color:#fff}.green{background:#16834a;color:#fff}.red{background:#b42318;color:#fff}
+.hero,.admin{max-width:1100px;margin:22px auto;padding:0 16px}.heroBox,.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 18px #0001}
+.heroBox h1{font-size:32px;margin:0 0 8px}.notice{padding:12px;border-radius:10px;background:#fff7df;margin:12px 0}.success{background:#eaf8ef}.error{background:#fdecec}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eaf2ff;color:#1557a5;font-size:12px;font-weight:700}
+.price{font-size:21px;font-weight:800;color:#0b3b7a}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:16px;z-index:5}.modal.show{display:flex}.box{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
+input,select{width:100%;padding:11px;border:1px solid #ccd5e1;border-radius:9px;margin:6px 0 12px;font:inherit}
+table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:9px;border-bottom:1px solid #e7ebf0;text-align:left;font-size:13px}footer{text-align:center;padding:30px;color:#687386}
+</style>
+</head>
+<body>
+<header><nav><div class="logo">📚 Teacher Resources Hub</div><button class="btn light" onclick="openM('admin')">Admin</button></nav></header>
+
+<section class="hero"><div class="heroBox">
+<h1>Teacher Resources Hub</h1>
+<p>Schemes of Work, Lesson Plans and Assessments.</p>
+<div class="notice"><b>M-Pesa Till:</b> 1610044 &nbsp; | &nbsp; <b>WhatsApp:</b> 0707078236</div>
+<div class="row"><button class="btn blue" onclick="load()">Browse Resources</button><button class="btn green" onclick="openM('payment')">Submit Payment</button></div>
+</div></section>
+
+<section class="hero"><div id="resources" class="grid"></div></section>
+
+<div class="modal" id="payment"><div class="box">
+<h2>Payment Submission</h2><p>Pay the required amount to Till <b>1610044</b>, then submit your M-Pesa transaction code. A Payment Admin must approve it before download.</p>
+<input id="pname" placeholder="Your name"><input id="pphone" placeholder="M-Pesa phone number"><input id="pcode" placeholder="M-Pesa transaction code">
+<select id="pres"><option value="">Select resource</option></select>
+<button class="btn green" onclick="submitPayment()">Submit for approval</button> <button class="btn" onclick="closeM('payment')">Close</button><div id="pmsg"></div>
+</div></div>
+
+<div class="modal" id="admin"><div class="box">
+<h2>Admin Login</h2><p>For authorised administrators only.</p>
+<input id="apass" type="password" placeholder="Admin password">
+<button class="btn blue" onclick="login()">Login</button> <button class="btn" onclick="closeM('admin')">Close</button><div id="amsg"></div>
+</div></div>
+
+<section class="admin" id="panel" style="display:none">
+<div class="card"><div class="row"><h2 style="margin-right:auto">Admin Dashboard</h2><button class="btn blue" onclick="payments()">Refresh</button><button class="btn green" onclick="toggleAdd()">Add Resource</button><button class="btn red" onclick="logout()">Logout</button></div>
+<div id="add" style="display:none;margin-top:15px">
+<input id="title" placeholder="Resource title"><select id="type"><option>Schemes of Work</option><option>Lesson Plan</option><option>Assessment</option></select><input id="grade" placeholder="Grade / Class"><input id="price" type="number" placeholder="Price in KSh"><input id="file" placeholder="Download file URL">
+<button class="btn green" onclick="addResource()">Save Resource</button>
+</div>
+<h3>Payment Requests</h3><div style="overflow:auto"><table><thead><tr><th>Name</th><th>Phone</th><th>Resource</th><th>Code</th><th>Status</th><th>Action</th></tr></thead><tbody id="plist"></tbody></table></div>
+</div></section>
+<footer>Teacher Resources Hub • Till 1610044 • WhatsApp 0707078236</footer>
+
+<script>
+const KEY="trh_data_v1", ADMIN_KEY="trh_admin_v1";
+const demo={resources:[
+{id:1,title:"Grade 5 Mathematics Term 1 Scheme",type:"Schemes of Work",grade:"Grade 5",price:30,file:""},
+{id:2,title:"Grade 4 Mathematics Lesson Plan",type:"Lesson Plan",grade:"Grade 4",price:30,file:""},
+{id:3,title:"Grade 6 End Term Assessment",type:"Assessment",grade:"Grade 6",price:50,file:""}],payments:[]};
+let db=JSON.parse(localStorage.getItem(KEY)||"null")||demo;
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function openM(id){document.getElementById(id).classList.add("show")}
+function closeM(id){document.getElementById(id).classList.remove("show")}
+function load(){
+ resources.innerHTML=db.resources.map(r=>`<div class="card"><span class="badge">${esc(r.type)}</span><h3>${esc(r.title)}</h3><p>${esc(r.grade)}</p><div class="price">KSh ${r.price}</div><button class="btn blue" onclick="choose(${r.id})">Request Download</button></div>`).join("");
+ pres.innerHTML='<option value="">Select resource</option>'+db.resources.map(r=>`<option value="${r.id}">${esc(r.title)} — KSh ${r.price}</option>`).join("");
+}
+function choose(id){pres.value=id;openM("payment")}
+function submitPayment(){
+ if(!pname.value||!pphone.value||!pcode.value||!pres.value){pmsg.className="notice error";pmsg.textContent="Please complete all fields.";return}
+ let r=db.resources.find(x=>x.id==pres.value);db.payments.push({id:Date.now(),name:pname.value,phone:pphone.value,code:pcode.value,resourceId:r.id,status:"PENDING"});save();
+ pmsg.className="notice success";pmsg.textContent="Submitted successfully. Your payment is waiting for admin approval.";
+}
+function login(){
+ // Demo password is only for initial local/demo use. Change it before publishing.
+ if(apass.value!=="1610044"){amsg.className="notice error";amsg.textContent="Incorrect password.";return}
+ localStorage.setItem(ADMIN_KEY,"1");closeM("admin");panel.style.display="block";payments();
+}
+function payments(){
+ plist.innerHTML=db.payments.map(p=>{let r=db.resources.find(x=>x.id==p.resourceId)||{};return `<tr><td>${esc(p.name)}</td><td>${esc(p.phone)}</td><td>${esc(r.title)}</td><td>${esc(p.code)}</td><td>${p.status}</td><td>${p.status==="PENDING"?`<button class="btn green" onclick="approve(${p.id})">Approve</button> <button class="btn red" onclick="reject(${p.id})">Reject</button>`:p.status==="APPROVED"&&r.file?`<a href="${esc(r.file)}" target="_blank">Download</a>`:"—"}</td></tr>`}).join("");
+}
+function approve(id){let p=db.payments.find(x=>x.id==id);if(p)p.status="APPROVED";save();payments()}
+function reject(id){let p=db.payments.find(x=>x.id==id);if(p)p.status="REJECTED";save();payments()}
+function toggleAdd(){add.style.display=add.style.display==="none"?"block":"none"}
+function addResource(){
+ if(!title.value||!price.value){alert("Enter title and price.");return}
+ db.resources.push({id:Date.now(),title:title.value,type:type.value,grade:grade.value,price:Number(price.value),file:file.value});save();title.value="";grade.value="";price.value="";file.value="";load();alert("Resource added.");
+}
+function logout(){localStorage.removeItem(ADMIN_KEY);panel.style.display="none"}
+load();if(localStorage.getItem(ADMIN_KEY)){panel.style.display="block";payments()}
+</script>
+</body>
+</html>

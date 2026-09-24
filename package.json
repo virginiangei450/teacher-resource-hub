@@ -1,0 +1,8 @@
+{
+  "name": "teacher-resources-hub",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "latest"
+  }
+}
